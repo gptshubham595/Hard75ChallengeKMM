@@ -1,10 +1,20 @@
 # Uncomment the next line to define a global platform for your project
 # platform :ios, '18.0'
+source 'https://cdn.cocoapods.org'
 
 target 'iosApp' do
   use_frameworks!
   platform :ios, '18.0'
   pod 'composeApp', :path => '../composeApp'
-  # Pods for iosApp
+  pod 'Firebase/Core'
+
+  # The pod for Firebase Authentication
+  pod 'Firebase/Auth'
+
+  # The pod for Cloud Firestore
+  pod 'Firebase/Firestore'
+
+  # The pod for Firebase Crashlytics
+  pod 'Firebase/Crashlytics'
 
 end

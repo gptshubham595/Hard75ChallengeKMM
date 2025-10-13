@@ -35,6 +35,7 @@ kotlin {
             baseName = "ComposeApp"
             isStatic = true
             freeCompilerArgs += "-Xbinary=bundleId=com.shubham.hard75kmm"
+            linkerOpts.add("-lsqlite3")
         }
     }
 
@@ -121,16 +122,6 @@ kotlin {
             isStatic = true
             linkerOpts.add("-lsqlite3")
         }
-        pod("FirebaseCore") {
-            version = "~> 11.13"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-
-        pod("FirebaseAuth")
-
-        pod("FirebaseFirestore")
-
-        pod("FirebaseCrashlytics")
     }
 }
 
