@@ -1,0 +1,10 @@
+# Uncomment the next line to define a global platform for your project
+# platform :ios, '18.0'
+
+target 'iosApp' do
+  use_frameworks!
+  platform :ios, '18.0'
+  pod 'composeApp', :path => '../composeApp'
+  # Pods for iosApp
+
+end

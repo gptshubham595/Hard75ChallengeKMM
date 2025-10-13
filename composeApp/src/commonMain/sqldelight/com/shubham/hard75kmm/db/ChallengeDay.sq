@@ -1,0 +1,38 @@
+import com.shubham.hard75kmm.data.db.entities.DayStatus;
+import kotlin.String;
+import kotlin.collections.List;
+
+CREATE TABLE challenge_days (
+    attemptNumber INTEGER NOT NULL,
+    dayNumber INTEGER NOT NULL,
+    status TEXT AS DayStatus NOT NULL,
+    score INTEGER NOT NULL DEFAULT 0,
+    totalTasks INTEGER NOT NULL,
+    completedTaskIds TEXT AS List<String> NOT NULL,
+    selfieImageUrl TEXT,
+    selfieNote TEXT,
+    timestamp INTEGER,
+    PRIMARY KEY (attemptNumber, dayNumber)
+);
+
+selectAll:
+SELECT * FROM challenge_days ORDER BY attemptNumber ASC, dayNumber ASC;
+
+selectByAttempt:
+SELECT * FROM challenge_days WHERE attemptNumber = ? ORDER BY dayNumber ASC;
+
+selectByAttemptAndDay:
+SELECT * FROM challenge_days WHERE attemptNumber = ? AND dayNumber = ?;
+
+insertDay:
+INSERT OR REPLACE INTO challenge_days (
+    attemptNumber,
+    dayNumber,
+    status,
+    score,
+    totalTasks,
+    completedTaskIds,
+    selfieImageUrl,
+    selfieNote,
+    timestamp
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);

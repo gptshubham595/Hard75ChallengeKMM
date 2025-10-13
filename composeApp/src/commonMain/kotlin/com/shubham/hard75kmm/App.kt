@@ -13,36 +13,37 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.transitions.SlideTransition
+import com.shubham.hard75kmm.data.repositories.AuthService
+import com.shubham.hard75kmm.ui.screens.ChallengeScreen
+import com.shubham.hard75kmm.ui.screens.LoginScreen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 import hard75kmm.composeapp.generated.resources.Res
 import hard75kmm.composeapp.generated.resources.compose_multiplatform
+import org.koin.compose.koinInject
 
 @Composable
 @Preview
 fun App() {
     MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
-            }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
-                }
+        val authService: AuthService = koinInject()
+
+        // Determine the starting screen based on whether a user is already logged in.
+        val startScreen = if (authService.getCurrentUser() != null) {
+            ChallengeScreen
+        } else {
+            LoginScreen
+        }
+
+        MaterialTheme {
+            // The Navigator is the core of Voyager. It manages the screen back stack.
+            // We initialize it with our calculated startScreen.
+            Navigator(screen = startScreen) { navigator ->
+                // Apply a slide transition for all screen changes
+                SlideTransition(navigator)
             }
         }
     }

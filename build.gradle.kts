@@ -10,4 +10,7 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.google.gms.services) apply false
+    alias(libs.plugins.firebase.crashlytics) apply false
+    alias(libs.plugins.kotlinCocoapods) apply false
 }
+

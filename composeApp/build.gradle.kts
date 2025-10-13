@@ -1,4 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -12,6 +11,8 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
     alias(libs.plugins.google.gms.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.kotlinCocoapods)
 }
 
 kotlin {
@@ -27,13 +28,13 @@ kotlin {
 
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            freeCompilerArgs += "-Xbinary=bundleId=com.shubham.hard75kmm"
         }
     }
 
@@ -50,6 +51,12 @@ kotlin {
             implementation(libs.firebase.auth)
             implementation(libs.firebase.firestore)
             implementation(libs.firebase.crashlytics)
+
+            implementation(libs.play.services.auth) // For Google Sign-In
+            implementation(libs.firebase.analytics)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.googleid)
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.driver.native) // SQLDelight iOS driver
@@ -58,6 +65,7 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
@@ -91,10 +99,38 @@ kotlin {
             implementation(libs.firebase.auth.gitlive)
             implementation(libs.firebase.firestore.gitlive)
             implementation(libs.firebase.crashlytics.gitlive)
+
+            implementation(libs.multiplatform.settings)
+            implementation(libs.uuid)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+    }
+
+    cocoapods {
+        summary = "Hard75KMM preject"
+        version = "1.0"
+        ios.deploymentTarget = "18.0"
+        homepage = "https://example.com"
+        podfile = project.file("../iosApp/Podfile")
+        pod("GoogleSignIn")
+        // Add the framework block here
+        framework {
+            baseName = "ComposeApp"
+            isStatic = true
+            linkerOpts.add("-lsqlite3")
+        }
+        pod("FirebaseCore") {
+            version = "~> 11.13"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+
+        pod("FirebaseAuth")
+
+        pod("FirebaseFirestore")
+
+        pod("FirebaseCrashlytics")
     }
 }
 
@@ -127,6 +163,9 @@ android {
 
 dependencies {
     debugImplementation(compose.uiTooling)
+    add("kspAndroid", libs.androidx.room.compiler)
+    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
+    add("kspIosArm64", libs.androidx.room.compiler)
 }
 
 // SQLDelight Configuration
