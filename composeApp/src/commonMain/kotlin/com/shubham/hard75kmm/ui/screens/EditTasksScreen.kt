@@ -40,6 +40,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.shubham.hard75kmm.data.models.Task
 import com.shubham.hard75kmm.ui.viewmodel.ChallengeViewModel
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 object EditTasksScreen : Screen {
     @Composable
@@ -136,4 +137,31 @@ fun EditTasksScreenContent(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun EditTasksScreenContentPreview() {
+    val tasks = listOf(
+        Task(id = "1", name = "Read 10 pages of a book"),
+        Task(id = "2", name = "Go to the gym"),
+        Task(id = "3", name = "Follow a diet")
+    )
+    EditTasksScreenContent(
+        taskList = tasks,
+        onAddTask = {},
+        onDeleteTask = {},
+        onNavigateBack = {}
+    )
+}
+
+@Preview
+@Composable
+fun EditTasksScreenContentEmptyPreview() {
+    EditTasksScreenContent(
+        taskList = emptyList(),
+        onAddTask = {},
+        onDeleteTask = {},
+        onNavigateBack = {}
+    )
 }

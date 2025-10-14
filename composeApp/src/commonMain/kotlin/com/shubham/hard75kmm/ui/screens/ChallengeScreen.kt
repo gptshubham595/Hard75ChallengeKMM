@@ -36,12 +36,18 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.shubham.hard75kmm.data.db.entities.DayStatus
 import com.shubham.hard75kmm.ui.components.CalendarView
 import com.shubham.hard75kmm.ui.components.TasksPopup
 import com.shubham.hard75kmm.ui.models.ChallengeUiState
+import com.shubham.hard75kmm.data.models.Task
+import com.shubham.hard75kmm.db.Challenge_days
 import com.shubham.hard75kmm.ui.viewmodel.ChallengeViewModel
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 object ChallengeScreen : Screen {
     @Composable
@@ -62,6 +68,132 @@ object ChallengeScreen : Screen {
             onDismissFailureDialog = viewModel::dismissFailureDialog
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
+@Preview
+@Composable
+fun ChallengeScreenContentPreview() {
+    ChallengeScreenContent(
+        uiState = ChallengeUiState(
+            days = (1..75).map {
+                Challenge_days(
+                    attemptNumber = 1,
+                    dayNumber = 1,
+                    status = DayStatus.getRandomStatus(),
+                    score = 100,
+                    totalTasks = 10,
+                    completedTaskIds = listOf("selfie"),
+                    selfieImageUrl = "",
+                    selfieNote = "",
+                    timestamp = Clock.System.now().toEpochMilliseconds()
+                )
+            },
+            taskList = listOf(
+                Task(id = "gym", name = "Go to the Gym"),
+                Task(id = "water_1l", name = "Drink 1L Water"),
+                Task(id = "water_2l", name = "Drink 2L Water"),
+                Task(id = "water_3l", name = "Drink 3L Water"),
+                Task(id = "walk", name = "Outdoor Walk"),
+                Task(id = "read", name = "Read 10 pages"),
+                Task(id = "steps_5k", name = "Complete 5k steps"),
+                Task(id = "steps_10k", name = "Complete 10k steps"),
+                Task(id = "no_junk", name = "No Junk Food")
+            ),
+            currentDayNumber = 5,
+            isChallengeActive = true,
+            hasFailed = false,
+            userPhotoUrl = null
+        ),
+        onNavigateToLeaderboard = {},
+        onNavigateToEditTasks = {},
+        onNavigateToGallery = {},
+        onStartChallenge = {},
+        onStartNewAttempt = {},
+        updateTasksForCurrentDay = {},
+        onSelfieTaken = { _, _ -> },
+        onDismissFailureDialog = {}
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun ChallengeScreenContentNotStartedPreview() {
+    ChallengeScreenContent(
+        uiState = ChallengeUiState(isChallengeActive = false),
+        onNavigateToLeaderboard = {},
+        onNavigateToEditTasks = {},
+        onNavigateToGallery = {},
+        onStartChallenge = {},
+        onStartNewAttempt = {},
+        updateTasksForCurrentDay = {},
+        onSelfieTaken = { _, _ -> },
+        onDismissFailureDialog = {}
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun ChallengeScreenContentFailedPreview() {
+    ChallengeScreenContent(
+        uiState = ChallengeUiState(isChallengeActive = true, hasFailed = true),
+        onNavigateToLeaderboard = {},
+        onNavigateToEditTasks = {},
+        onNavigateToGallery = {},
+        onStartChallenge = {},
+        onStartNewAttempt = {},
+        updateTasksForCurrentDay = {},
+        onSelfieTaken = { _, _ -> },
+        onDismissFailureDialog = {}
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
+@Preview
+@Composable
+fun ChallengeScreenContentWithUserPhotoPreview() {
+    ChallengeScreenContent(
+        uiState = ChallengeUiState(
+            days = (1..75).map {
+                Challenge_days(
+                    attemptNumber = 1,
+                    dayNumber = 1,
+                    status = DayStatus.getRandomStatus(),
+                    score = 100,
+                    totalTasks = 10,
+                    completedTaskIds = listOf("selfie"),
+                    selfieImageUrl = "",
+                    selfieNote = "",
+                    timestamp = Clock.System.now().toEpochMilliseconds()
+                )
+            },
+            taskList = listOf(
+                Task(id = "gym", name = "Go to the Gym"),
+                Task(id = "water_1l", name = "Drink 1L Water"),
+                Task(id = "water_2l", name = "Drink 2L Water"),
+                Task(id = "water_3l", name = "Drink 3L Water"),
+                Task(id = "walk", name = "Outdoor Walk"),
+                Task(id = "read", name = "Read 10 pages"),
+                Task(id = "steps_5k", name = "Complete 5k steps"),
+                Task(id = "steps_10k", name = "Complete 10k steps"),
+                Task(id = "no_junk", name = "No Junk Food")
+            ),
+            currentDayNumber = 10,
+            isChallengeActive = true,
+            hasFailed = false,
+            userPhotoUrl = "https://example.com/user.jpg"
+        ),
+        onNavigateToLeaderboard = {},
+        onNavigateToEditTasks = {},
+        onNavigateToGallery = {},
+        onStartChallenge = {},
+        onStartNewAttempt = {},
+        updateTasksForCurrentDay = {},
+        onSelfieTaken = { _, _ -> },
+        onDismissFailureDialog = {}
+    )
 }
 
 
@@ -193,3 +325,4 @@ fun ChallengeScreenContent(
         )
     }
 }
+

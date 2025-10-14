@@ -49,6 +49,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.getScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.shubham.hard75kmm.data.db.entities.DayStatus
 import com.shubham.hard75kmm.db.Challenge_days
 import com.shubham.hard75kmm.ui.viewmodel.GalleryViewModel
 import io.kamel.image.KamelImage
@@ -56,6 +57,8 @@ import io.kamel.image.asyncPainterResource
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 object GalleryScreen : Screen {
@@ -127,6 +130,39 @@ fun GalleryScreenContent(
             onDismiss = { selectedDay = null }
         )
     }
+}
+
+@Preview
+@Composable
+fun GalleryScreenContentPreview() {
+    val sampleDays1 = listOf(
+        Challenge_days(1L, 1, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
+        Challenge_days(2L, 2, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
+        Challenge_days(3L, 3, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
+    )
+    val sampleDays2 = listOf(
+        Challenge_days(1L, 1, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
+        Challenge_days(2L, 2, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
+    )
+    val photos = mapOf(
+        1L to sampleDays1,
+        2L to sampleDays2
+    )
+    GalleryScreenContent(photosByAttempt = photos, onNavigateBack = {})
+}
+
+@Preview
+@Composable
+fun GalleryScreenContentEmptyPreview() {
+    GalleryScreenContent(photosByAttempt = emptyMap(), onNavigateBack = {})
+}
+
+@Preview
+@Composable
+fun GalleryScreenContentWithDialogPreview() {
+    val day = Challenge_days(1L, 1, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds())
+    val photos = mapOf(1L to listOf(day))
+    GalleryScreenContent(photosByAttempt = photos, onNavigateBack = {})
 }
 
 @Composable

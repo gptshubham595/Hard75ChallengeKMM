@@ -38,6 +38,7 @@ import com.shubham.hard75kmm.ui.models.LeaderboardState
 import com.shubham.hard75kmm.ui.viewmodel.LeaderboardViewModel
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -110,6 +111,70 @@ fun LeaderboardScreenContent(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun LeaderboardScreenContentPreviewLoading() {
+    LeaderboardScreenContent(
+        onNavigateBack = {},
+        leaderboardState = LeaderboardState(isLoading = true, entries = emptyList(), error = null)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun LeaderboardScreenContentPreviewError() {
+    LeaderboardScreenContent(
+        onNavigateBack = {},
+        leaderboardState = LeaderboardState(
+            isLoading = false,
+            entries = emptyList(),
+            error = "Failed to load leaderboard"
+        )
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun LeaderboardScreenContentPreviewEmpty() {
+    LeaderboardScreenContent(
+        onNavigateBack = {},
+        leaderboardState = LeaderboardState(isLoading = false, entries = emptyList(), error = null)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
+@Preview
+@Composable
+fun LeaderboardScreenContentPreviewWithData() {
+    val entries = listOf(
+        LeaderboardEntry(
+            userId = "user1",
+            userName = "Alice",
+            totalScore = 1500,
+            completedDate = null
+        ),
+        LeaderboardEntry(
+            userId = "user2",
+            userName = "Bob",
+            totalScore = 1250,
+            completedDate = null
+        ),
+        LeaderboardEntry(
+            userId = "user3",
+            userName = "Charlie",
+            totalScore = 1100,
+            completedDate = null
+        )
+    )
+    LeaderboardScreenContent(
+        onNavigateBack = {},
+        leaderboardState = LeaderboardState(isLoading = false, entries = entries, error = null)
+    )
 }
 
 @OptIn(ExperimentalTime::class)
