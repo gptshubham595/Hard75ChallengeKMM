@@ -3,7 +3,8 @@
 source 'https://cdn.cocoapods.org'
 
 target 'iosApp' do
-  use_frameworks!
+  use_frameworks! :linkage => :static
+  use_modular_headers!
   platform :ios, '18.0'
   pod 'composeApp', :path => '../composeApp'
   pod 'Firebase/Core'
@@ -16,5 +17,7 @@ target 'iosApp' do
 
   # The pod for Firebase Crashlytics
   pod 'Firebase/Crashlytics'
+  
+  pod 'gRPC-C++'
 
 end
