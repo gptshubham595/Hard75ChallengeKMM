@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import java.io.ByteArrayOutputStream
 
 
+
 actual interface CameraManager {
     actual fun launch()
 }
@@ -20,9 +21,10 @@ actual interface CameraManager {
 actual fun rememberCameraManager(onImageTaken: (ByteArray) -> Unit): CameraManager {
     val context = LocalContext.current
 
+    // Launcher for capturing the image preview
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
+    ) { bitmap: Bitmap? ->
         if (bitmap != null) {
             val stream = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
@@ -30,22 +32,28 @@ actual fun rememberCameraManager(onImageTaken: (ByteArray) -> Unit): CameraManag
         }
     }
 
+    // Launcher for requesting camera permission
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
+            // If permission is granted, launch the camera
             cameraLauncher.launch()
         }
+        // Optionally, handle the case where the user denies the permission
     }
 
+    // Return the actual CameraManager implementation
     return object : CameraManager {
         override fun launch() {
+            // Check for permission before launching camera
             when (PackageManager.PERMISSION_GRANTED) {
                 ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) -> {
+                    // Permission is already granted
                     cameraLauncher.launch()
                 }
-
                 else -> {
+                    // Permission has not been granted, request it
                     permissionLauncher.launch(Manifest.permission.CAMERA)
                 }
             }

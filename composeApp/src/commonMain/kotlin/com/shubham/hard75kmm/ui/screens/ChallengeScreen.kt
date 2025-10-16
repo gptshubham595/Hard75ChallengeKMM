@@ -1,5 +1,6 @@
 package com.shubham.hard75kmm.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,15 +10,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,11 +44,11 @@ import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.shubham.hard75kmm.data.db.entities.DayStatus
+import com.shubham.hard75kmm.data.models.Task
+import com.shubham.hard75kmm.db.Challenge_days
 import com.shubham.hard75kmm.ui.components.CalendarView
 import com.shubham.hard75kmm.ui.components.TasksPopup
 import com.shubham.hard75kmm.ui.models.ChallengeUiState
-import com.shubham.hard75kmm.data.models.Task
-import com.shubham.hard75kmm.db.Challenge_days
 import com.shubham.hard75kmm.ui.viewmodel.ChallengeViewModel
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
@@ -70,133 +77,6 @@ object ChallengeScreen : Screen {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
-@Preview
-@Composable
-fun ChallengeScreenContentPreview() {
-    ChallengeScreenContent(
-        uiState = ChallengeUiState(
-            days = (1..75).map {
-                Challenge_days(
-                    attemptNumber = 1,
-                    dayNumber = 1,
-                    status = DayStatus.getRandomStatus(),
-                    score = 100,
-                    totalTasks = 10,
-                    completedTaskIds = listOf("selfie"),
-                    selfieImageUrl = "",
-                    selfieNote = "",
-                    timestamp = Clock.System.now().toEpochMilliseconds()
-                )
-            },
-            taskList = listOf(
-                Task(id = "gym", name = "Go to the Gym"),
-                Task(id = "water_1l", name = "Drink 1L Water"),
-                Task(id = "water_2l", name = "Drink 2L Water"),
-                Task(id = "water_3l", name = "Drink 3L Water"),
-                Task(id = "walk", name = "Outdoor Walk"),
-                Task(id = "read", name = "Read 10 pages"),
-                Task(id = "steps_5k", name = "Complete 5k steps"),
-                Task(id = "steps_10k", name = "Complete 10k steps"),
-                Task(id = "no_junk", name = "No Junk Food")
-            ),
-            currentDayNumber = 5,
-            isChallengeActive = true,
-            hasFailed = false,
-            userPhotoUrl = null
-        ),
-        onNavigateToLeaderboard = {},
-        onNavigateToEditTasks = {},
-        onNavigateToGallery = {},
-        onStartChallenge = {},
-        onStartNewAttempt = {},
-        updateTasksForCurrentDay = {},
-        onSelfieTaken = { _, _ -> },
-        onDismissFailureDialog = {}
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview
-@Composable
-fun ChallengeScreenContentNotStartedPreview() {
-    ChallengeScreenContent(
-        uiState = ChallengeUiState(isChallengeActive = false),
-        onNavigateToLeaderboard = {},
-        onNavigateToEditTasks = {},
-        onNavigateToGallery = {},
-        onStartChallenge = {},
-        onStartNewAttempt = {},
-        updateTasksForCurrentDay = {},
-        onSelfieTaken = { _, _ -> },
-        onDismissFailureDialog = {}
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview
-@Composable
-fun ChallengeScreenContentFailedPreview() {
-    ChallengeScreenContent(
-        uiState = ChallengeUiState(isChallengeActive = true, hasFailed = true),
-        onNavigateToLeaderboard = {},
-        onNavigateToEditTasks = {},
-        onNavigateToGallery = {},
-        onStartChallenge = {},
-        onStartNewAttempt = {},
-        updateTasksForCurrentDay = {},
-        onSelfieTaken = { _, _ -> },
-        onDismissFailureDialog = {}
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
-@Preview
-@Composable
-fun ChallengeScreenContentWithUserPhotoPreview() {
-    ChallengeScreenContent(
-        uiState = ChallengeUiState(
-            days = (1..75).map {
-                Challenge_days(
-                    attemptNumber = 1,
-                    dayNumber = 1,
-                    status = DayStatus.getRandomStatus(),
-                    score = 100,
-                    totalTasks = 10,
-                    completedTaskIds = listOf("selfie"),
-                    selfieImageUrl = "",
-                    selfieNote = "",
-                    timestamp = Clock.System.now().toEpochMilliseconds()
-                )
-            },
-            taskList = listOf(
-                Task(id = "gym", name = "Go to the Gym"),
-                Task(id = "water_1l", name = "Drink 1L Water"),
-                Task(id = "water_2l", name = "Drink 2L Water"),
-                Task(id = "water_3l", name = "Drink 3L Water"),
-                Task(id = "walk", name = "Outdoor Walk"),
-                Task(id = "read", name = "Read 10 pages"),
-                Task(id = "steps_5k", name = "Complete 5k steps"),
-                Task(id = "steps_10k", name = "Complete 10k steps"),
-                Task(id = "no_junk", name = "No Junk Food")
-            ),
-            currentDayNumber = 10,
-            isChallengeActive = true,
-            hasFailed = false,
-            userPhotoUrl = "https://example.com/user.jpg"
-        ),
-        onNavigateToLeaderboard = {},
-        onNavigateToEditTasks = {},
-        onNavigateToGallery = {},
-        onStartChallenge = {},
-        onStartNewAttempt = {},
-        updateTasksForCurrentDay = {},
-        onSelfieTaken = { _, _ -> },
-        onDismissFailureDialog = {}
-    )
-}
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChallengeScreenContent(
@@ -219,9 +99,9 @@ fun ChallengeScreenContent(
             CenterAlignedTopAppBar(
                 title = { Text("75 Hard Challenge") },
                 actions = {
-                    uiState.userPhotoUrl?.let {
+                    if (!uiState.userPhotoUrl.isNullOrEmpty()) {
                         KamelImage(
-                            resource = { asyncPainterResource(data = it) },
+                            resource = asyncPainterResource(data = uiState.userPhotoUrl),
                             contentDescription = "User Profile Photo",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -229,31 +109,62 @@ fun ChallengeScreenContent(
                                 .size(36.dp)
                                 .clip(CircleShape)
                         )
-                    } ?: Icon(
-                        imageVector = Icons.Filled.AccountCircle,
-                        contentDescription = "User Profile",
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(36.dp)
-                    )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.AccountCircle,
+                            contentDescription = "User Profile",
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(36.dp)
+                        )
+                    }
 
+                    // Dropdown menu for extra options
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "More Options")
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        // Dropdown items for navigation and actions
                         DropdownMenuItem(
                             text = { Text("Edit Tasks") },
-                            onClick = { onNavigateToEditTasks(); showMenu = false })
+                            onClick = {
+                                onNavigateToEditTasks()
+                                showMenu = false
+                            },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
                         DropdownMenuItem(
                             text = { Text("Leaderboard") },
-                            onClick = { onNavigateToLeaderboard(); showMenu = false })
+                            onClick = {
+                                onNavigateToLeaderboard()
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Leaderboard,
+                                    contentDescription = null
+                                )
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("Gallery") },
-                            onClick = { onNavigateToGallery(); showMenu = false })
+                            onClick = {
+                                onNavigateToGallery()
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.PhotoLibrary,
+                                    contentDescription = null
+                                )
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("Start New Attempt") },
-                            onClick = { showStartFreshDialog = true; showMenu = false })
+                            onClick = {
+                                showStartFreshDialog = true
+                                showMenu = false
+                            }
+                        )
                     }
                 }
             )
@@ -277,7 +188,10 @@ fun ChallengeScreenContent(
             if (uiState.isChallengeActive) {
                 CalendarView(days = uiState.days)
             } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Text("Ready to start the challenge?")
                     Button(onClick = onStartChallenge, modifier = Modifier.padding(top = 16.dp)) {
                         Text("START DAY 1")
@@ -302,7 +216,7 @@ fun ChallengeScreenContent(
         AlertDialog(
             onDismissRequest = onDismissFailureDialog,
             title = { Text("Challenge Failed") },
-            text = { Text("You missed a day. You can start a new attempt.") },
+            text = { Text("You missed a day and your streak is broken. You can start a new challenge.") },
             confirmButton = { TextButton(onClick = onDismissFailureDialog) { Text("START OVER") } }
         )
     }
@@ -310,19 +224,75 @@ fun ChallengeScreenContent(
     if (showStartFreshDialog) {
         AlertDialog(
             onDismissRequest = { showStartFreshDialog = false },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null) },
             title = { Text("Start a New Attempt?") },
-            text = { Text("This will start a new attempt on Day 1. Your previous progress will be saved in the gallery.") },
+            text = { Text("This will end your current attempt and start a new one on Day 1. Your previous progress will be saved in the gallery.") },
             confirmButton = {
-                Button(onClick = { onStartNewAttempt(); showStartFreshDialog = false }) {
+                Button(
+                    onClick = {
+                        onStartNewAttempt()
+                        showStartFreshDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
                     Text("Yes, Start Fresh")
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showStartFreshDialog = false
-                }) { Text("Cancel") }
+                TextButton(onClick = { showStartFreshDialog = false }) { Text("Cancel") }
             }
         )
     }
 }
 
+// --- Previews for Jetpack Compose ---
+
+@OptIn(ExperimentalTime::class)
+@Preview
+@Composable
+fun ChallengeScreenContentPreview() {
+    ChallengeScreenContent(
+        uiState = ChallengeUiState(
+            days = (1..75).map {
+                Challenge_days(
+                    attemptNumber = 1,
+                    dayNumber = it.toLong(),
+                    status = DayStatus.getRandomStatus(),
+                    score = 100,
+                    totalTasks = 10,
+                    completedTaskIds = listOf("selfie"),
+                    selfieImageUrl = "",
+                    selfieNote = "",
+                    timestamp = Clock.System.now().toEpochMilliseconds()
+                )
+            },
+            taskList = listOf(Task(id = "gym", name = "Go to the Gym")),
+            currentDayNumber = 5,
+            isChallengeActive = true
+        ),
+        onNavigateToLeaderboard = {},
+        onNavigateToEditTasks = {},
+        onNavigateToGallery = {},
+        onStartChallenge = {},
+        onStartNewAttempt = {},
+        updateTasksForCurrentDay = {},
+        onSelfieTaken = { _, _ -> },
+        onDismissFailureDialog = {}
+    )
+}
+
+@Preview
+@Composable
+fun ChallengeScreenContentNotStartedPreview() {
+    ChallengeScreenContent(
+        uiState = ChallengeUiState(isChallengeActive = false),
+        onNavigateToLeaderboard = {},
+        onNavigateToEditTasks = {},
+        onNavigateToGallery = {},
+        onStartChallenge = {},
+        onStartNewAttempt = {},
+        updateTasksForCurrentDay = {},
+        onSelfieTaken = { _, _ -> },
+        onDismissFailureDialog = {}
+    )
+}

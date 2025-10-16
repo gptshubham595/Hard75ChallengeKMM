@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.stateIn
 
 class GalleryViewModel(
     repository: ChallengeRepository
-) : ScreenModel { // Note: It now implements ScreenModel
+) : ScreenModel {
 
     /**
      * Exposes a flow of photos grouped by their attempt number.

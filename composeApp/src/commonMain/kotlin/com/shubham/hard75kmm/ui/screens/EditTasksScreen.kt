@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.getScreenModel
 import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -96,13 +95,14 @@ fun EditTasksScreenContent(
                     value = newTaskName,
                     onValueChange = { newTaskName = it },
                     label = { Text("New Task Name") },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = {
                         if (newTaskName.isNotBlank()) {
-                            onAddTask(newTaskName)
+                            onAddTask(newTaskName.trim())
                             newTaskName = "" // Clear the input field
                         }
                     },
@@ -130,7 +130,11 @@ fun EditTasksScreenContent(
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(onClick = { onDeleteTask(task) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete Task")
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Task",
+                                tint = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
@@ -149,17 +153,6 @@ fun EditTasksScreenContentPreview() {
     )
     EditTasksScreenContent(
         taskList = tasks,
-        onAddTask = {},
-        onDeleteTask = {},
-        onNavigateBack = {}
-    )
-}
-
-@Preview
-@Composable
-fun EditTasksScreenContentEmptyPreview() {
-    EditTasksScreenContent(
-        taskList = emptyList(),
         onAddTask = {},
         onDeleteTask = {},
         onNavigateBack = {}

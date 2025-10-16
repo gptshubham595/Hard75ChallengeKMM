@@ -10,5 +10,10 @@ enum class DayStatus {
         fun getRandomStatus(): DayStatus {
             return entries.toTypedArray().random()
         }
+
+        fun DayStatus.stillHasHope(): Boolean {
+            return this == IN_PROGRESS || this == COMPLETED
+        }
+
     }
 }

@@ -4,5 +4,7 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+    <key>NSCameraUsageDescription</key>
+    <string>This app needs access to your camera to take daily progress photos for the challenge.</string>
 </dict>
 </plist>

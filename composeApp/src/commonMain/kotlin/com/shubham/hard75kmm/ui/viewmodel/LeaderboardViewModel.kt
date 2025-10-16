@@ -17,19 +17,25 @@ class LeaderboardViewModel : ScreenModel {
 
     private val firestore = Firebase.firestore
 
+    /**
+     * A StateFlow that represents the current state of the leaderboard.
+     * It starts in a loading state, then updates with either a list of entries
+     * or an error message. It listens for real-time changes from Firestore.
+     */
     val leaderboardState: StateFlow<LeaderboardState> = firestore
         .collection("leaderboard")
         // Order the results by score in descending order (highest first)
         .orderBy("totalScore", Direction.DESCENDING)
-        .snapshots.map { snapshot ->
+        .snapshots // This creates a Flow that emits updates in real-time
+        .map { snapshot ->
             // Map the Firestore documents to our LeaderboardEntry data class
             val entries = snapshot.documents.map { doc ->
                 doc.data<LeaderboardEntry>()
             }
-            LeaderboardState(entries = entries, isLoading = false)
+            LeaderboardState(entries = entries, isLoading = false, error = null)
         }
         .catch { e ->
-            // Handle any errors during data fetching
+            // Handle any errors during data fetching (e.g., network issues)
             emit(
                 LeaderboardState(
                     error = "Failed to load leaderboard: ${e.message}",

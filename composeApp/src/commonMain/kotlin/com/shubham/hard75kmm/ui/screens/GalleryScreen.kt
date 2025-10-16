@@ -1,6 +1,5 @@
-@file:OptIn(ExperimentalTime::class)
-
 package com.shubham.hard75kmm.ui.screens
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,26 +45,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.getScreenModel
+import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.shubham.hard75kmm.data.db.entities.DayStatus
 import com.shubham.hard75kmm.db.Challenge_days
 import com.shubham.hard75kmm.ui.viewmodel.GalleryViewModel
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.compose.ui.tooling.preview.Preview
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 object GalleryScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val viewModel = getScreenModel<GalleryViewModel>()
+        val viewModel = koinScreenModel<GalleryViewModel>()
         val photosByAttempt by viewModel.photosByAttempt.collectAsState()
 
         GalleryScreenContent(
@@ -74,6 +70,7 @@ object GalleryScreen : Screen {
         )
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,6 +106,7 @@ fun GalleryScreenContent(
                 modifier = Modifier.padding(paddingValues),
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {
+                // Sort attempts in descending order (newest first)
                 val sortedEntries = photosByAttempt.entries.sortedByDescending { it.key }
 
                 sortedEntries.forEach { (attemptNumber, days) ->
@@ -124,6 +122,7 @@ fun GalleryScreenContent(
         }
     }
 
+    // Show the full-screen photo detail dialog when a day is selected
     if (selectedDay != null) {
         PhotoDetailDialog(
             day = selectedDay!!,
@@ -132,38 +131,6 @@ fun GalleryScreenContent(
     }
 }
 
-@Preview
-@Composable
-fun GalleryScreenContentPreview() {
-    val sampleDays1 = listOf(
-        Challenge_days(1L, 1, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
-        Challenge_days(2L, 2, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
-        Challenge_days(3L, 3, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
-    )
-    val sampleDays2 = listOf(
-        Challenge_days(1L, 1, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
-        Challenge_days(2L, 2, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds()),
-    )
-    val photos = mapOf(
-        1L to sampleDays1,
-        2L to sampleDays2
-    )
-    GalleryScreenContent(photosByAttempt = photos, onNavigateBack = {})
-}
-
-@Preview
-@Composable
-fun GalleryScreenContentEmptyPreview() {
-    GalleryScreenContent(photosByAttempt = emptyMap(), onNavigateBack = {})
-}
-
-@Preview
-@Composable
-fun GalleryScreenContentWithDialogPreview() {
-    val day = Challenge_days(1L, 1, DayStatus.getRandomStatus(), 100, 10,listOf("selfie"), "","",Clock.System.now().toEpochMilliseconds())
-    val photos = mapOf(1L to listOf(day))
-    GalleryScreenContent(photosByAttempt = photos, onNavigateBack = {})
-}
 
 @Composable
 private fun AttemptSection(
@@ -191,8 +158,8 @@ private fun AttemptSection(
         Divider(modifier = Modifier.padding(vertical = 8.dp))
     }
 
-    // A simple FlowRow is often better for a small number of items than a nested lazy list.
-    // However, for potentially 75 photos, a grid is better. We estimate the height.
+    // Estimate the grid height to allow the parent LazyColumn to scroll smoothly.
+    // This prevents nesting a lazy layout inside another without a fixed height.
     val gridHeight = ((days.size + 1) / 2 * 220).dp
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -201,12 +168,14 @@ private fun AttemptSection(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.height(gridHeight)
     ) {
-        items(days, key = { it.dayNumber }) { day ->
+        items(days, key = { "${it.attemptNumber}-${it.dayNumber}" }) { day ->
             PostalCardItem(day, onClick = { onPhotoClick(day) })
         }
     }
 }
 
+
+@OptIn(ExperimentalTime::class)
 @Composable
 fun PostalCardItem(day: Challenge_days, onClick: () -> Unit) {
     Card(
@@ -216,7 +185,7 @@ fun PostalCardItem(day: Challenge_days, onClick: () -> Unit) {
     ) {
         Column {
             KamelImage(
-                resource = { asyncPainterResource(data = day.selfieImageUrl!!) },
+                resource = asyncPainterResource(data = day.selfieImageUrl!!),
                 contentDescription = "Selfie for Day ${day.dayNumber}",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -252,6 +221,8 @@ fun PostalCardItem(day: Challenge_days, onClick: () -> Unit) {
     }
 }
 
+
+@OptIn(ExperimentalTime::class)
 @Composable
 private fun PhotoDetailDialog(day: Challenge_days, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
@@ -265,7 +236,7 @@ private fun PhotoDetailDialog(day: Challenge_days, onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.Center
             ) {
                 KamelImage(
-                    resource = { asyncPainterResource(data = day.selfieImageUrl!!) },
+                    resource = asyncPainterResource(data = day.selfieImageUrl!!),
                     contentDescription = "Full screen selfie for Day ${day.dayNumber}",
                     modifier = Modifier
                         .fillMaxWidth()
@@ -281,7 +252,10 @@ private fun PhotoDetailDialog(day: Challenge_days, onDismiss: () -> Unit) {
                 )
                 day.timestamp?.let {
                     Text(
-                        text = formatDate(Instant.fromEpochMilliseconds(it), "dd MMM yyyy, hh:mm a"),
+                        text = formatDate(
+                            Instant.fromEpochMilliseconds(it),
+                            "dd MMM yyyy, hh:mm a"
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -299,18 +273,20 @@ private fun PhotoDetailDialog(day: Challenge_days, onDismiss: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalTime::class)
 fun formatDate(instant: Instant, format: String): String {
     val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    // Basic formatting. For more complex needs, a library like ThreeTenBP on KMM is an option.
+    // Basic formatting for dates.
     val month = dateTime.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
     return when (format) {
-        "dd MMM yyyy" -> "${dateTime.day} $month ${dateTime.year}"
+        "dd MMM yyyy" -> "${dateTime.dayOfMonth} $month ${dateTime.year}"
         "dd MMM yyyy, hh:mm a" -> {
             val hour = if (dateTime.hour % 12 == 0) 12 else dateTime.hour % 12
             val minute = dateTime.minute.toString().padStart(2, '0')
             val ampm = if (dateTime.hour < 12) "AM" else "PM"
-            "${dateTime.day} $month ${dateTime.year}, $hour:$minute $ampm"
+            "${dateTime.dayOfMonth} $month ${dateTime.year}, $hour:$minute $ampm"
         }
+
         else -> dateTime.toString()
     }
 }

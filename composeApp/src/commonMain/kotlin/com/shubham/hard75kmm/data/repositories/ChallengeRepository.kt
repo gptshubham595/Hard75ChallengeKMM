@@ -9,12 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 class ChallengeRepository(
     db: AppDatabase,
@@ -71,38 +65,14 @@ class ChallengeRepository(
     }
 
     /**
-     * Increments the attempt number and saves the start date for the new attempt.
+     * Increments the attempt number in settings.
      */
-    @OptIn(ExperimentalTime::class)
     fun startNewAttempt() {
         val newAttempt = getCurrentAttemptNumber() + 1
         settings.putInt(ATTEMPT_KEY, newAttempt)
-        settings.putLong(getStartDateKey(newAttempt), Clock.System.now().toEpochMilliseconds())
     }
-
-    /**
-     * Retrieves the start date for the current attempt from settings.
-     */
-    @OptIn(ExperimentalTime::class)
-    fun getStartDateForCurrentAttempt(): LocalDate {
-        val currentAttempt = getCurrentAttemptNumber()
-        val timestamp = settings.getLong(getStartDateKey(currentAttempt), 0L)
-        return if (timestamp > 0) {
-            Instant.fromEpochMilliseconds(timestamp)
-                .toLocalDateTime(TimeZone.currentSystemDefault()).date
-        } else {
-            // This is the first ever launch for this attempt, set and return today's date
-            val todayTimestamp = Clock.System.now().toEpochMilliseconds()
-            settings.putLong(getStartDateKey(currentAttempt), todayTimestamp)
-            Instant.fromEpochMilliseconds(todayTimestamp)
-                .toLocalDateTime(TimeZone.currentSystemDefault()).date
-        }
-    }
-
-    private fun getStartDateKey(attemptNumber: Int) = "start_date_for_attempt_$attemptNumber"
 
     companion object {
         private const val ATTEMPT_KEY = "current_attempt"
     }
 }
-
