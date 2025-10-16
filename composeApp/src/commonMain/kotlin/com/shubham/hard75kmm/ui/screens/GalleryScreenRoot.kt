@@ -1,5 +1,6 @@
 package com.shubham.hard75kmm.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,46 +40,41 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
-import com.shubham.hard75kmm.db.Challenge_days
+import androidx.navigation.NavController
+import coil3.compose.rememberAsyncImagePainter
+import com.shubham.hard75kmm.data.db.entities.ChallengeDay
 import com.shubham.hard75kmm.ui.viewmodel.GalleryViewModel
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-object GalleryScreen : Screen {
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        val viewModel = koinScreenModel<GalleryViewModel>()
-        val photosByAttempt by viewModel.photosByAttempt.collectAsState()
+@Composable
+fun GalleryScreenRoot(navController: NavController) {
+    val viewModel: GalleryViewModel = koinViewModel()
+    val photosByAttempt by viewModel.photosByAttempt.collectAsState()
 
-        GalleryScreenContent(
-            photosByAttempt = photosByAttempt,
-            onNavigateBack = { navigator.pop() }
-        )
-    }
+    GalleryScreenContent(
+        photosByAttempt = photosByAttempt,
+        onNavigateBack = { navController.popBackStack() }
+    )
 }
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GalleryScreenContent(
-    photosByAttempt: Map<Long, List<Challenge_days>>,
+    photosByAttempt: Map<Long, List<ChallengeDay>>,
     onNavigateBack: () -> Unit
 ) {
-    var selectedDay by remember { mutableStateOf<Challenge_days?>(null) }
+    var selectedDay by remember { mutableStateOf<ChallengeDay?>(null) }
 
     Scaffold(
         topBar = {
@@ -135,8 +131,8 @@ fun GalleryScreenContent(
 @Composable
 private fun AttemptSection(
     attemptNumber: Long,
-    days: List<Challenge_days>,
-    onPhotoClick: (Challenge_days) -> Unit
+    days: List<ChallengeDay>,
+    onPhotoClick: (ChallengeDay) -> Unit
 ) {
     val totalScore = days.sumOf { it.score }
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -177,23 +173,40 @@ private fun AttemptSection(
 
 @OptIn(ExperimentalTime::class)
 @Composable
-fun PostalCardItem(day: Challenge_days, onClick: () -> Unit) {
+fun PostalCardItem(day: ChallengeDay, onClick: () -> Unit) {
     Card(
         modifier = Modifier.clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = MaterialTheme.shapes.medium
     ) {
         Column {
-            KamelImage(
-                resource = asyncPainterResource(data = day.selfieImageUrl!!),
-                contentDescription = "Selfie for Day ${day.dayNumber}",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(MaterialTheme.shapes.medium),
-                contentScale = ContentScale.Crop,
-                onLoading = { CircularProgressIndicator(modifier = Modifier.align(Alignment.Center)) }
-            )
+            var imageLoadResult by remember { mutableStateOf<Result<Painter>?>(null) }
+            val painter = rememberAsyncImagePainter(model = day.selfieImageUrl, onSuccess = {
+                if (it.painter.intrinsicSize.width > 1 && it.painter.intrinsicSize.height > 1) {
+                    imageLoadResult = Result.success(it.painter)
+                } else {
+                    imageLoadResult =
+                        Result.failure(Exception("Image load failed: Invalid Image Size!"))
+                }
+            }, onError = {
+                it.result.throwable.printStackTrace()
+                imageLoadResult = Result.failure(it.result.throwable)
+            })
+
+            when (val result = imageLoadResult) {
+                null -> CircularProgressIndicator()
+                else -> if (result.isSuccess) {
+                    Image(
+                        painter = painter,
+                        contentDescription = "Selfie for Day ${day.dayNumber}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(MaterialTheme.shapes.medium),
+                    )
+                }
+            }
             Column(Modifier.padding(8.dp)) {
                 Text(
                     text = "Day ${day.dayNumber}",
@@ -224,7 +237,7 @@ fun PostalCardItem(day: Challenge_days, onClick: () -> Unit) {
 
 @OptIn(ExperimentalTime::class)
 @Composable
-private fun PhotoDetailDialog(day: Challenge_days, onDismiss: () -> Unit) {
+private fun PhotoDetailDialog(day: ChallengeDay, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.fillMaxSize().clickable(onClick = onDismiss),
@@ -235,16 +248,33 @@ private fun PhotoDetailDialog(day: Challenge_days, onDismiss: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                KamelImage(
-                    resource = asyncPainterResource(data = day.selfieImageUrl!!),
-                    contentDescription = "Full screen selfie for Day ${day.dayNumber}",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .clip(MaterialTheme.shapes.large),
-                    contentScale = ContentScale.Fit,
-                    onLoading = { CircularProgressIndicator(modifier = Modifier.align(Alignment.Center)) }
-                )
+                var imageLoadResult by remember { mutableStateOf<Result<Painter>?>(null) }
+                val painter = rememberAsyncImagePainter(model = day.selfieImageUrl, onSuccess = {
+                    imageLoadResult =
+                        if (it.painter.intrinsicSize.width > 1 && it.painter.intrinsicSize.height > 1) {
+                            Result.success(it.painter)
+                        } else {
+                            Result.failure(Exception("Image load failed: Invalid Image Size!"))
+                        }
+                }, onError = {
+                    it.result.throwable.printStackTrace()
+                    imageLoadResult = Result.failure(it.result.throwable)
+                })
+
+                when (val result = imageLoadResult) {
+                    null -> CircularProgressIndicator()
+                    else -> if (result.isSuccess) {
+                        Image(
+                            painter = painter,
+                            contentDescription = "Selfie for Day ${day.dayNumber}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .clip(MaterialTheme.shapes.medium),
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Day ${day.dayNumber}",

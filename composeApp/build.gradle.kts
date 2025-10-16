@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.sqldelight) // Add SQLDelight plugin
+//    alias(libs.plugins.sqldelight) // Add SQLDelight plugin
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.jetbrains.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -44,9 +44,10 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
-            implementation(libs.sqldelight.driver.android) // SQLDelight Android driver
+//            implementation(libs.sqldelight.driver.android) // SQLDelight Android driver
             implementation(libs.koin.android)
             implementation(libs.koin.androidx.compose)
+            implementation(libs.koin.composeVM)
 
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.auth)
@@ -58,9 +59,12 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services.auth)
             implementation(libs.googleid)
+
+            implementation(libs.ktor.client.okhttp)
         }
         iosMain.dependencies {
-            implementation(libs.sqldelight.driver.native) // SQLDelight iOS driver
+//            implementation(libs.sqldelight.driver.native) // SQLDelight iOS driver
+            implementation(libs.ktor.client.darwin)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -74,19 +78,12 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
             // Koin
-            implementation(libs.koin.core)
+            api(libs.koin.core)
             implementation(libs.koin.compose)
-
-            // Voyager
-            implementation(libs.voyager.navigator)
-            implementation(libs.voyager.transitions)
-            implementation(libs.voyager.koin)
-
-            // Kamel
-            implementation(libs.kamel.image)
+            implementation(libs.koin.composeVM)
 
             // SQLDelight
-            implementation(libs.sqldelight.coroutines)
+//            implementation(libs.sqldelight.coroutines)
 
             // DateTime
             implementation(libs.kotlinx.datetime)
@@ -94,6 +91,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.jetbrains.compose.navigation)
             implementation(libs.androidx.room.runtime)
+            implementation(libs.sqlite.bundled)
 
             implementation(libs.bundles.coil)
 
@@ -103,6 +101,8 @@ kotlin {
 
             implementation(libs.multiplatform.settings)
             implementation(libs.uuid)
+
+            implementation(libs.bundles.ktor)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -160,10 +160,10 @@ dependencies {
 }
 
 // SQLDelight Configuration
-sqldelight {
-    databases {
-        create("AppDatabase") {
-            packageName.set("com.shubham.hard75kmm.db")
-        }
-    }
-}
+//sqldelight {
+//    databases {
+//        create("AppDatabase") {
+//            packageName.set("com.shubham.hard75kmm.db")
+//        }
+//    }
+//}

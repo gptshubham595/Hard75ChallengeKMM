@@ -1,7 +1,7 @@
 package com.shubham.hard75kmm.ui.viewmodel
 
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.shubham.hard75kmm.data.models.LeaderboardEntry
 import com.shubham.hard75kmm.ui.models.LeaderboardState
 import dev.gitlive.firebase.Firebase
@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-class LeaderboardViewModel : ScreenModel {
+class LeaderboardViewModel : ViewModel() {
 
     private val firestore = Firebase.firestore
 
@@ -44,7 +44,7 @@ class LeaderboardViewModel : ScreenModel {
             )
         }
         .stateIn(
-            scope = screenModelScope,
+            scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = LeaderboardState(isLoading = true) // Start in a loading state
         )

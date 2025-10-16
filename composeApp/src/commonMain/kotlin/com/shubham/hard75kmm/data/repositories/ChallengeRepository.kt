@@ -1,75 +1,72 @@
 package com.shubham.hard75kmm.data.repositories
 
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
 import com.russhwolf.settings.Settings
-import com.shubham.hard75kmm.db.AppDatabase
-import com.shubham.hard75kmm.db.Challenge_days
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
+import com.shubham.hard75kmm.data.db.ChallengeDao
+import com.shubham.hard75kmm.data.db.entities.ChallengeDay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.withContext
 
+/**
+ * Repository class that abstracts access to the data source.
+ * It is the single source of truth for the challenge data in the KMM module.
+ */
 class ChallengeRepository(
-    db: AppDatabase,
-    private val settings: Settings
+    private val dao: ChallengeDao,
+    private val settings: Settings // KMM replacement for SharedPreferences
 ) {
-    private val queries = db.challengeDayQueries
 
     /**
      * Retrieves a flow of all days for the user's current attempt.
      */
-    fun getDaysForCurrentAttempt(): Flow<List<Challenge_days>> {
-        val currentAttempt = settings.getInt(ATTEMPT_KEY, 1)
-        return queries.selectByAttempt(currentAttempt.toLong()).asFlow().mapToList(Dispatchers.IO)
+    fun getDaysForCurrentAttempt(): Flow<List<ChallengeDay>> {
+        val currentAttempt = getCurrentAttemptNumber()
+        return dao.getDaysForAttempt(currentAttempt)
     }
 
     /**
-     * Retrieves a flow of all days from all attempts, for the Gallery screen.
+     * Fetches the most recently updated day from the database for the current attempt.
+     * This is the essential function that was missing.
      */
-    fun getAllDays(): Flow<List<Challenge_days>> {
-        return queries.selectAll().asFlow().mapToList(Dispatchers.IO)
+    suspend fun getLatestUpdatedDay(): ChallengeDay? {
+        val currentAttempt = getCurrentAttemptNumber()
+        return dao.getLatestUpdatedDayForAttempt(currentAttempt)
+    }
+
+    /**
+     * Retrieves a flow of all days from all attempts.
+     * Used by the GalleryViewModel.
+     */
+    fun getAllDays(): Flow<List<ChallengeDay>> {
+        return dao.getAllDays()
     }
 
     /**
      * Fetches a specific day's data for the current attempt.
      */
-    suspend fun getDay(dayNumber: Int): Challenge_days? = withContext(Dispatchers.IO) {
+    suspend fun getDay(dayNumber: Long): ChallengeDay? {
         val currentAttempt = getCurrentAttemptNumber()
-        queries.selectByAttemptAndDay(currentAttempt.toLong(), dayNumber.toLong())
-            .executeAsOneOrNull()
+        return dao.getDayForAttempt(currentAttempt, dayNumber)
     }
 
     /**
-     * Inserts or updates a Challenge_days in the database.
+     * Inserts or updates a ChallengeDay in the database.
      */
-    suspend fun upsertDay(day: Challenge_days) = withContext(Dispatchers.IO) {
-        queries.insertDay(
-            attemptNumber = day.attemptNumber,
-            dayNumber = day.dayNumber,
-            status = day.status,
-            score = day.score,
-            totalTasks = day.totalTasks,
-            completedTaskIds = day.completedTaskIds,
-            selfieImageUrl = day.selfieImageUrl,
-            selfieNote = day.selfieNote,
-            timestamp = day.timestamp
-        )
+    suspend fun upsertDay(day: ChallengeDay) {
+        dao.upsertDay(day)
     }
 
     /**
-     * Gets the current attempt number from settings.
+     * Gets the current attempt number from multiplatform-settings.
      */
-    fun getCurrentAttemptNumber(): Int {
-        return settings.getInt(ATTEMPT_KEY, 1)
+    fun getCurrentAttemptNumber(): Long {
+        return settings.getLong(ATTEMPT_KEY, 1)
     }
 
     /**
-     * Increments the attempt number in settings.
+     * Increments the attempt number in multiplatform-settings.
      */
     fun startNewAttempt() {
         val newAttempt = getCurrentAttemptNumber() + 1
-        settings.putInt(ATTEMPT_KEY, newAttempt)
+        settings.putLong(ATTEMPT_KEY, newAttempt)
     }
 
     companion object {

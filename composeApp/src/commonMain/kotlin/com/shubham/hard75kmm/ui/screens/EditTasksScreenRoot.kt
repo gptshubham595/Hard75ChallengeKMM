@@ -33,29 +33,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
+import androidx.navigation.NavController
 import com.shubham.hard75kmm.data.models.Task
 import com.shubham.hard75kmm.ui.viewmodel.ChallengeViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.viewmodel.koinViewModel
 
-object EditTasksScreen : Screen {
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        val viewModel = koinScreenModel<ChallengeViewModel>()
-        val uiState by viewModel.uiState.collectAsState()
+/**
+ * The main entry point for the Edit Tasks Screen.
+ * Handles state observation and navigation events.
+ */
+@Composable
+fun EditTasksScreenRoot(navController: NavController) {
+    val viewModel:ChallengeViewModel = koinViewModel()
+    val uiState by viewModel.uiState.collectAsState()
 
-        EditTasksScreenContent(
-            // Filter out the static "selfie" task so it cannot be edited
-            taskList = uiState.taskList.filter { it.id != "selfie" },
-            onAddTask = viewModel::addTask,
-            onDeleteTask = viewModel::deleteTask,
-            onNavigateBack = { navigator.pop() }
-        )
-    }
+    EditTasksScreenContent(
+        // Filter out the static "selfie" task so it cannot be edited by the user
+        taskList = uiState.taskList.filter { it.id != "selfie" },
+        onAddTask = viewModel::addTask,
+        onDeleteTask = viewModel::deleteTask,
+        onNavigateBack = { navController.popBackStack() }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

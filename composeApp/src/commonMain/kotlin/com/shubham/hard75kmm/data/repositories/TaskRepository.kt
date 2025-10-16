@@ -15,8 +15,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 class TaskRepository(
-    private val settings: Settings
+    private val settings: Settings // Injects KMM's Settings
 ) {
+    // Uses kotlinx.serialization for JSON handling
     private val json = Json { isLenient = true; ignoreUnknownKeys = true }
 
     private val defaultTasks = listOf(
@@ -34,57 +35,42 @@ class TaskRepository(
     private val _taskList = MutableStateFlow<List<Task>>(emptyList())
 
     init {
-        // Load initial tasks from storage
         loadTasks()
     }
 
-    /**
-     * Exposes the current list of tasks as a Flow that the UI can observe.
-     */
     fun getAllTasks(): Flow<List<Task>> = _taskList.asStateFlow()
 
-    /**
-     * Adds a new task to the user's list and saves it.
-     */
     suspend fun addTask(taskName: String) {
+        // Uses KMM-compatible UUID
         val newTask = Task(id = uuid4().toString(), name = taskName)
         _taskList.update { it + newTask }
         saveTasks()
     }
 
-    /**
-     * Deletes a task from the user's list and saves the changes.
-     */
     suspend fun deleteTask(task: Task) {
         _taskList.update { it.filterNot { it.id == task.id } }
         saveTasks()
     }
 
-    /**
-     * Loads the task list from settings. If no tasks are saved,
-     * it initializes the list with default tasks.
-     */
     private fun loadTasks() {
         val tasksJson = settings.getString(TASKS_KEY, "")
         if (tasksJson.isNotBlank()) {
             try {
+                // Decode using kotlinx.serialization
                 _taskList.update { json.decodeFromString(tasksJson) }
             } catch (e: Exception) {
-                // If decoding fails (e.g., corrupted data), fallback to default
+                // If decoding fails, fallback to default tasks
                 _taskList.update { defaultTasks }
             }
         } else {
-            // This is the first launch, so load and save the default tasks
+            // First launch, so load and save default tasks
             _taskList.update { defaultTasks }
-            // Launch a coroutine to save without blocking the init block
             CoroutineScope(Dispatchers.IO).launch { saveTasks() }
         }
     }
 
-    /**
-     * Saves the current task list to settings as a JSON string.
-     */
     private suspend fun saveTasks() = withContext(Dispatchers.IO) {
+        // Encode using kotlinx.serialization
         val tasksJson = json.encodeToString(_taskList.value)
         settings.putString(TASKS_KEY, tasksJson)
     }

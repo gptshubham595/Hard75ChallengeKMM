@@ -1,5 +1,6 @@
 package com.shubham.hard75kmm.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,44 +39,45 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
+import androidx.navigation.NavController
+import coil3.compose.rememberAsyncImagePainter
+import com.shubham.hard75kmm.data.db.entities.ChallengeDay
 import com.shubham.hard75kmm.data.db.entities.DayStatus
 import com.shubham.hard75kmm.data.models.Task
-import com.shubham.hard75kmm.db.Challenge_days
+import com.shubham.hard75kmm.navigation.Route
 import com.shubham.hard75kmm.ui.components.CalendarView
 import com.shubham.hard75kmm.ui.components.TasksPopup
 import com.shubham.hard75kmm.ui.models.ChallengeUiState
 import com.shubham.hard75kmm.ui.viewmodel.ChallengeViewModel
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-object ChallengeScreen : Screen {
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        val viewModel = koinScreenModel<ChallengeViewModel>()
-        val uiState by viewModel.uiState.collectAsState()
+@Composable
+fun ChallengeScreenRoot(
+    navController: NavController,
+    viewModel: ChallengeViewModel = koinViewModel()
+) {
 
-        ChallengeScreenContent(
-            uiState = uiState,
-            onNavigateToLeaderboard = { navigator.push(LeaderboardScreen) },
-            onNavigateToEditTasks = { navigator.push(EditTasksScreen) },
-            onNavigateToGallery = { navigator.push(GalleryScreen) },
-            onStartChallenge = viewModel::startChallenge,
-            onStartNewAttempt = { viewModel.startNewAttempt() },
-            updateTasksForCurrentDay = viewModel::updateTasksForCurrentDay,
-            onSelfieTaken = viewModel::saveSelfie,
-            onDismissFailureDialog = viewModel::dismissFailureDialog
-        )
-    }
+    val uiState by viewModel.uiState.collectAsState()
+
+    ChallengeScreenContent(
+        uiState = uiState,
+        // Update navigation lambdas to use the NavController
+        onNavigateToLeaderboard = { navController.navigate(Route.LeaderboardScreen) },
+        onNavigateToEditTasks = { navController.navigate(Route.EditTasksScreen) },
+        onNavigateToGallery = { navController.navigate(Route.GalleryScreen) },
+        // ... other callbacks remain the same
+        onStartChallenge = viewModel::startChallenge,
+        onStartNewAttempt = { viewModel.startNewAttempt() },
+        updateTasksForCurrentDay = viewModel::updateTasksForCurrentDay,
+        onSelfieTaken = viewModel::saveSelfie,
+        onDismissFailureDialog = viewModel::dismissFailureDialog
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,15 +103,33 @@ fun ChallengeScreenContent(
                 title = { Text("75 Hard Challenge") },
                 actions = {
                     if (!uiState.userPhotoUrl.isNullOrEmpty()) {
-                        KamelImage(
-                            resource = asyncPainterResource(data = uiState.userPhotoUrl),
-                            contentDescription = "User Profile Photo",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .size(36.dp)
-                                .clip(CircleShape)
-                        )
+                        var imageLoadResult by remember { mutableStateOf<Result<Painter>?>(null) }
+                        val painter =
+                            rememberAsyncImagePainter(model = uiState.userPhotoUrl, onSuccess = {
+                                imageLoadResult = if (it.painter.intrinsicSize.width > 1 && it.painter.intrinsicSize.height > 1) {
+                                    Result.success(it.painter)
+                                } else {
+                                    Result.failure(Exception("Image load failed: Invalid Image Size!"))
+                                }
+                            }, onError = {
+                                it.result.throwable.printStackTrace()
+                                imageLoadResult = Result.failure(it.result.throwable)
+                            })
+
+                        when (val result = imageLoadResult) {
+                            null -> CircularProgressIndicator()
+                            else -> if (result.isSuccess) {
+                                Image(
+                                    painter = painter,
+                                    contentDescription = "User Profile Photo",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .padding(end = 8.dp)
+                                        .size(36.dp)
+                                        .clip(CircleShape),
+                                )
+                            }
+                        }
                     } else {
                         Icon(
                             imageVector = Icons.Filled.AccountCircle,
@@ -202,7 +223,7 @@ fun ChallengeScreenContent(
     }
 
     if (showTaskDialog) {
-        val currentDayData = uiState.days.find { it.dayNumber.toInt() == uiState.currentDayNumber }
+        val currentDayData = uiState.days.find { it.dayNumber == uiState.currentDayNumber }
         TasksPopup(
             tasks = uiState.taskList,
             dayData = currentDayData,
@@ -254,7 +275,7 @@ fun ChallengeScreenContentPreview() {
     ChallengeScreenContent(
         uiState = ChallengeUiState(
             days = (1..75).map {
-                Challenge_days(
+                ChallengeDay(
                     attemptNumber = 1,
                     dayNumber = it.toLong(),
                     status = DayStatus.getRandomStatus(),

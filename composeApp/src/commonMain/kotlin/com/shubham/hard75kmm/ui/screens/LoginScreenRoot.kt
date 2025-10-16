@@ -18,35 +18,45 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
+import com.shubham.hard75kmm.data.repositories.getPlatformContext
 import com.shubham.hard75kmm.ui.models.AuthUiState
 import com.shubham.hard75kmm.ui.viewmodel.AuthViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
-object LoginScreen : Screen {
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        val viewModel = koinScreenModel<AuthViewModel>()
-        val uiState by viewModel.uiState.collectAsState()
+/**
+ * The main entry point for the Login Screen.
+ * It handles logic, state observation, and navigation events.
+ *
+ * @param onLoginSuccess A callback function to be invoked when the sign-in is successful.
+ * This is triggered by the NavHost to perform the navigation.
+ */
+@Composable
+fun LoginScreenRoot(onLoginSuccess: () -> Unit) {
+    val viewModel: AuthViewModel = koinViewModel()
+    val uiState by viewModel.uiState.collectAsState()
 
-        // This effect listens for a successful login and navigates accordingly
-        LaunchedEffect(uiState.isSuccess) {
-            if (uiState.isSuccess) {
-                // Replace the entire back stack with the ChallengeScreen
-                navigator.replaceAll(ChallengeScreen)
-            }
+    // Get the platform-specific context (an Activity on Android) required for the sign-in UI.
+    val context = getPlatformContext()
+
+    // This side effect listens for a successful login state.
+    // When `uiState.isSuccess` becomes true, it calls the `onLoginSuccess` lambda.
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
+            onLoginSuccess()
         }
-
-        LoginScreenContent(
-            uiState = uiState,
-            onSignInClick = viewModel::signIn
-        )
     }
+
+    // This is the pure UI component. It receives state and callbacks.
+    LoginScreenContent(
+        uiState = uiState,
+        onSignInClick = { viewModel.signIn(context) }
+    )
 }
 
+/**
+ * The pure UI part of the Login Screen.
+ * It is stateless and only displays the UI based on the provided `AuthUiState`.
+ */
 @Composable
 fun LoginScreenContent(
     uiState: AuthUiState,

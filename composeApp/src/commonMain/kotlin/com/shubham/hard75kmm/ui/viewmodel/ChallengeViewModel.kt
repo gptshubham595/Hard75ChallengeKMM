@@ -1,13 +1,15 @@
 package com.shubham.hard75kmm.ui.viewmodel
 
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.shubham.hard75kmm.data.ImageStorage
+import com.shubham.hard75kmm.data.db.entities.ChallengeDay
 import com.shubham.hard75kmm.data.db.entities.DayStatus
+import com.shubham.hard75kmm.data.db.entities.DayStatus.Companion.stillHasHope
 import com.shubham.hard75kmm.data.models.LeaderboardEntry
 import com.shubham.hard75kmm.data.models.Task
 import com.shubham.hard75kmm.data.repositories.ChallengeRepository
 import com.shubham.hard75kmm.data.repositories.TaskRepository
-import com.shubham.hard75kmm.db.Challenge_days
 import com.shubham.hard75kmm.ui.models.ChallengeUiState
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
@@ -24,7 +26,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -32,8 +36,9 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTime::class)
 class ChallengeViewModel(
     private val challengeRepository: ChallengeRepository,
-    private val taskRepository: TaskRepository
-) : ScreenModel {
+    private val taskRepository: TaskRepository,
+    private val imageStorage: ImageStorage
+) : ViewModel() { // Using androidx.lifecycle.ViewModel for viewModelScope
 
     // KMM Firebase instances
     private val auth = Firebase.auth
@@ -43,21 +48,17 @@ class ChallengeViewModel(
     val uiState: StateFlow<ChallengeUiState> = _uiState.asStateFlow()
 
     init {
-        // This combine operator creates a reactive stream that updates the UI state
-        // whenever the underlying data (days or tasks) changes.
-        screenModelScope.launch {
+        viewModelScope.launch {
+            // This reactive stream updates the UI whenever the database or task list changes
             combine(
                 challengeRepository.getDaysForCurrentAttempt(),
                 taskRepository.getAllTasks()
             ) { days, tasks ->
-                // Ensure the static 'selfie' task is always in the list for the UI
                 val fullTaskList = tasks.toMutableList().apply {
                     if (none { it.id == "selfie" }) {
                         add(0, Task(id = "selfie", name = "Attach today's selfie"))
                     }
                 }
-
-                // Construct the new UI state
                 ChallengeUiState(
                     days = days,
                     taskList = fullTaskList,
@@ -65,11 +66,10 @@ class ChallengeViewModel(
                     userPhotoUrl = auth.currentUser?.photoURL
                 )
             }.stateIn(
-                scope = screenModelScope,
+                scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = ChallengeUiState()
             ).collectLatest { state ->
-                // Update the mutable state flow and trigger a check for the day's status
                 _uiState.value = state
                 if (state.isChallengeActive) {
                     checkDailyStatus()
@@ -79,166 +79,27 @@ class ChallengeViewModel(
     }
 
     // --- Task Management ---
-    fun addTask(taskName: String) = screenModelScope.launch {
-        taskRepository.addTask(taskName)
-    }
-
-    fun deleteTask(task: Task) = screenModelScope.launch {
-        taskRepository.deleteTask(task)
-    }
-
-    // --- Challenge & Attempt Logic ---
-    fun startChallenge() {
-        screenModelScope.launch {
-            initializeDaysForNewAttempt()
-        }
-    }
-
-    fun startNewAttempt() {
-        screenModelScope.launch {
-            challengeRepository.startNewAttempt()
-            initializeDaysForNewAttempt()
-        }
-    }
-
-    private suspend fun initializeDaysForNewAttempt() {
-        val newAttemptNumber = challengeRepository.getCurrentAttemptNumber()
-        val totalTasks = taskRepository.getAllTasks().first().size
-
-        // Create Day 1 as FAILED (red) to prompt the user to act
-        val day1 = Challenge_days(
-            attemptNumber = newAttemptNumber.toLong(),
-            dayNumber = 1,
-            status = DayStatus.FAILED,
-            score = 0,
-            totalTasks = totalTasks.toLong(),
-            completedTaskIds = emptyList(),
-            selfieImageUrl = null,
-            selfieNote = null,
-            timestamp = Clock.System.now().toEpochMilliseconds() // Set timestamp to today
-        )
-        challengeRepository.upsertDay(day1)
-
-        // Pre-populate the remaining 74 days as LOCKED
-        val futureDays = (2..75).map { dayNum ->
-            Challenge_days(
-                attemptNumber = newAttemptNumber.toLong(),
-                dayNumber = dayNum.toLong(),
-                status = DayStatus.LOCKED,
-                score = 0,
-                totalTasks = totalTasks.toLong(),
-                completedTaskIds = emptyList(),
-                selfieImageUrl = null,
-                selfieNote = null,
-                timestamp = null
-            )
-        }
-        futureDays.forEach { challengeRepository.upsertDay(it) }
-    }
-
-
-    // --- Task and Selfie Updates ---
-    fun updateTasksForCurrentDay(completedIds: List<String>) {
-        screenModelScope.launch {
-            val currentDayNumber = _uiState.value.currentDayNumber
-            val dayToUpdate = challengeRepository.getDay(currentDayNumber) ?: return@launch
-            val totalTasks = _uiState.value.taskList.size
-
-            val newStatus = when {
-                completedIds.size == totalTasks -> DayStatus.COMPLETED
-                completedIds.isNotEmpty() -> DayStatus.IN_PROGRESS
-                else -> DayStatus.FAILED
-            }
-
-            // Correct scoring: IN_PROGRESS score should not include the selfie
-            val newScore = when (newStatus) {
-                DayStatus.COMPLETED -> 10
-                DayStatus.IN_PROGRESS -> completedIds.count { it != "selfie" }
-                else -> 0
-            }
-
-            val updatedDay = dayToUpdate.copy(
-                status = newStatus,
-                score = newScore.toLong(),
-                completedTaskIds = completedIds,
-                totalTasks = totalTasks.toLong(),
-                timestamp = Clock.System.now()
-                    .toEpochMilliseconds() // Update timestamp on any change
-            )
-            challengeRepository.upsertDay(updatedDay)
-
-            if (currentDayNumber == 75 && newStatus == DayStatus.COMPLETED) {
-                completeChallenge()
-            }
-        }
-    }
-
-    fun saveSelfie(photoData: ByteArray, note: String?) {
-        screenModelScope.launch {
-            // TODO: Implement expect/actual for saving the byte array to a file
-            // and getting the platform-specific file path.
-            val localUri = "path/to/saved/image.jpg" // This is a placeholder
-
-            val currentDay = _uiState.value.currentDayNumber
-            val dayData = challengeRepository.getDay(currentDay) ?: return@launch
-
-            val updatedDay = dayData.copy(
-                selfieImageUrl = localUri,
-                selfieNote = note,
-                timestamp = Clock.System.now().toEpochMilliseconds()
-            )
-            challengeRepository.upsertDay(updatedDay)
-
-            // Programmatically mark the 'selfie' task as complete
-            val updatedTaskIds = dayData.completedTaskIds.toMutableList().apply {
-                if (!contains("selfie")) add("selfie")
-            }
-            updateTasksForCurrentDay(updatedTaskIds)
-        }
-    }
-
-    private fun completeChallenge() {
-        screenModelScope.launch {
-            val user = auth.currentUser ?: return@launch
-            val totalScore = _uiState.value.days.sumOf { it.score }
-            val entry = LeaderboardEntry(
-                userId = user.uid,
-                userName = user.displayName ?: "Anonymous",
-                totalScore = totalScore
-            )
-            // The KMM library automatically adds the server timestamp
-            firestore.collection("leaderboard").document(user.uid).set(entry)
-        }
-    }
+    fun addTask(taskName: String) = viewModelScope.launch { taskRepository.addTask(taskName) }
+    fun deleteTask(task: Task) = viewModelScope.launch { taskRepository.deleteTask(task) }
 
     // --- Daily Status and Failure Logic ---
-    private suspend fun getLatestUpdatedDay(): Challenge_days? {
-        // In SQLDelight, we manually find the most recent day with a timestamp.
-        return uiState.value.days
-            .filter { it.timestamp != null }
-            .maxByOrNull { it.timestamp!! }
-    }
-
     private fun checkDailyStatus() {
-        screenModelScope.launch {
-            val latestDay = getLatestUpdatedDay() ?: return@launch
+        viewModelScope.launch {
+            val latestDay = challengeRepository.getLatestUpdatedDay() ?: return@launch
             val lastTimestamp = latestDay.timestamp ?: return@launch
+            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
 
-            val today = LocalDate.fromEpochDays(
-                (Clock.System.now().toEpochMilliseconds() / (1000 * 60 * 60 * 24)).toInt()
-            )
-
-            // Case 1: Still the same calendar day (respecting grace period).
+            // Case 1: Still the same calendar day (with grace period).
             if (today.isSameDay(lastTimestamp)) {
-                _uiState.update { it.copy(currentDayNumber = latestDay.dayNumber.toInt()) }
+                _uiState.update { it.copy(currentDayNumber = latestDay.dayNumber) }
                 return@launch
             }
 
             // Case 2: It's the very next day.
             if (today.isNextDay(lastTimestamp)) {
-                if (latestDay.status == DayStatus.COMPLETED || latestDay.status == DayStatus.IN_PROGRESS) {
+                if (latestDay.status.stillHasHope()) {
                     // Success! Unlock the next day.
-                    val nextDayNumber = latestDay.dayNumber.toInt() + 1
+                    val nextDayNumber = latestDay.dayNumber + 1
                     if (nextDayNumber > 75) return@launch // Challenge finished
 
                     val nextDay = challengeRepository.getDay(nextDayNumber)
@@ -258,13 +119,109 @@ class ChallengeViewModel(
                 return@launch
             }
 
-            // Case 3: More than one day has passed.
+            // Case 3: More than one day has passed. You missed a day.
             if (today.isMoreThanOneDay(lastTimestamp)) {
-                if (latestDay.status == DayStatus.COMPLETED || latestDay.status == DayStatus.IN_PROGRESS) {
+                if (latestDay.status.stillHasHope()) {
                     challengeRepository.upsertDay(latestDay.copy(status = DayStatus.FAILED))
                 }
                 _uiState.update { it.copy(hasFailed = true) }
             }
+        }
+    }
+
+    // --- Challenge & Attempt Logic ---
+    fun startChallenge() = viewModelScope.launch { initializeDaysForNewAttempt() }
+
+    fun startNewAttempt() = viewModelScope.launch {
+        challengeRepository.startNewAttempt()
+        initializeDaysForNewAttempt()
+    }
+
+    private suspend fun initializeDaysForNewAttempt() {
+        val newAttemptNumber = challengeRepository.getCurrentAttemptNumber()
+        val totalTasks = taskRepository.getAllTasks().first().size
+        val day1 = ChallengeDay(
+            attemptNumber = newAttemptNumber,
+            dayNumber = 1,
+            status = DayStatus.FAILED,
+            totalTasks = totalTasks.toLong(),
+            timestamp = Clock.System.now().toEpochMilliseconds()
+        )
+        challengeRepository.upsertDay(day1)
+
+        val futureDays = (2..75).map { dayNum ->
+            ChallengeDay(
+                attemptNumber = newAttemptNumber,
+                dayNumber = dayNum.toLong(),
+                status = DayStatus.LOCKED,
+                totalTasks = totalTasks.toLong(),
+                timestamp = null
+            )
+        }
+        futureDays.forEach { challengeRepository.upsertDay(it) }
+    }
+
+    // --- Task and Selfie Updates ---
+    fun updateTasksForCurrentDay(completedIds: List<String>) {
+        viewModelScope.launch {
+            val currentDayNumber = _uiState.value.currentDayNumber
+            val dayToUpdate = challengeRepository.getDay(currentDayNumber) ?: return@launch
+            val totalTasks = _uiState.value.taskList.size
+            val newStatus = when {
+                completedIds.size == totalTasks -> DayStatus.COMPLETED
+                completedIds.isNotEmpty() -> DayStatus.IN_PROGRESS
+                else -> DayStatus.FAILED
+            }
+            val newScore = when (newStatus) {
+                DayStatus.COMPLETED -> 10L
+                DayStatus.IN_PROGRESS -> completedIds.count { it != "selfie" }
+                else -> 0L
+            }
+            val updatedDay = dayToUpdate.copy(
+                status = newStatus,
+                score = newScore.toLong(),
+                completedTaskIds = completedIds,
+                totalTasks = totalTasks.toLong(),
+                timestamp = Clock.System.now().toEpochMilliseconds()
+            )
+            challengeRepository.upsertDay(updatedDay)
+
+            if (currentDayNumber == 75L && newStatus == DayStatus.COMPLETED) {
+                completeChallenge()
+            }
+        }
+    }
+
+    fun saveSelfie(photoData: ByteArray, note: String?) {
+        viewModelScope.launch {
+            val localUri = imageStorage.saveImage(photoData)
+            val currentDay = _uiState.value.currentDayNumber
+            val dayData = challengeRepository.getDay(currentDay) ?: return@launch
+
+            val updatedDay = dayData.copy(
+                selfieImageUrl = localUri,
+                selfieNote = note,
+                timestamp = Clock.System.now().toEpochMilliseconds()
+            )
+            challengeRepository.upsertDay(updatedDay)
+
+            val updatedTaskIds = dayData.completedTaskIds.toMutableList().apply {
+                if (!contains("selfie")) add("selfie")
+            }
+            updateTasksForCurrentDay(updatedTaskIds)
+        }
+    }
+
+    private fun completeChallenge() {
+        viewModelScope.launch {
+            val user = auth.currentUser ?: return@launch
+            val totalScore = _uiState.value.days.sumOf { it.score }
+            val entry = LeaderboardEntry(
+                userId = user.uid,
+                userName = user.displayName ?: "Anonymous",
+                totalScore = totalScore
+            )
+            firestore.collection("leaderboard").document(user.uid).set(entry)
         }
     }
 
@@ -273,39 +230,35 @@ class ChallengeViewModel(
         startNewAttempt()
     }
 
-    // --- Date/Time Helper Functions with Grace Period ---
+    // --- Date/Time Helper Functions (using kotlinx-datetime) ---
     private fun isWithinGracePeriod(timestamp: Long): Boolean {
-        // 2-hour grace period in milliseconds (2 AM cutoff)
+        // 2-hour grace period in milliseconds
         val twoHoursInMillis = 2 * 60 * 60 * 1000
         val gracePeriodEnd = timestamp + twoHoursInMillis
         return Clock.System.now().toEpochMilliseconds() < gracePeriodEnd
     }
 
     private fun LocalDate.isSameDay(lastDayTimeStamp: Long): Boolean {
-        val systemZone = TimeZone.currentSystemDefault()
         val lastDayDate = Instant.fromEpochMilliseconds(lastDayTimeStamp)
-            .toLocalDateTime(systemZone).date
-
-        return this == lastDayDate || (this.toEpochDays() == lastDayDate.toEpochDays() + 1 && isWithinGracePeriod(
-            lastDayTimeStamp
-        ))
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return this == lastDayDate || (this == lastDayDate.plus(
+            1,
+            kotlinx.datetime.DateTimeUnit.DAY
+        ) && isWithinGracePeriod(lastDayTimeStamp))
     }
 
     private fun LocalDate.isNextDay(lastDayTimeStamp: Long): Boolean {
-        val systemZone = TimeZone.currentSystemDefault()
         val lastDayDate = Instant.fromEpochMilliseconds(lastDayTimeStamp)
-            .toLocalDateTime(systemZone).date
-
-        return this.toEpochDays() == lastDayDate.toEpochDays() + 1 && !isWithinGracePeriod(
-            lastDayTimeStamp
-        )
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return this == lastDayDate.plus(
+            1,
+            kotlinx.datetime.DateTimeUnit.DAY
+        ) && !isWithinGracePeriod(lastDayTimeStamp)
     }
 
     private fun LocalDate.isMoreThanOneDay(lastDayTimeStamp: Long): Boolean {
-        val systemZone = TimeZone.currentSystemDefault()
         val lastDayDate = Instant.fromEpochMilliseconds(lastDayTimeStamp)
-            .toLocalDateTime(systemZone).date
-
-        return this.toEpochDays() > lastDayDate.toEpochDays() + 1
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return this > lastDayDate.plus(1, kotlinx.datetime.DateTimeUnit.DAY)
     }
 }

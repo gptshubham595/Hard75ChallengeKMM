@@ -5,7 +5,6 @@ import com.shubham.hard75kmm.di.initKoin
 
 fun MainViewController() = ComposeUIViewController({
     initKoin()
-    onDidFinishLaunchingWithOptions()
 }) {
     App()
 }

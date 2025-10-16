@@ -28,10 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
+import androidx.navigation.NavController
 import com.shubham.hard75kmm.data.models.LeaderboardEntry
 import com.shubham.hard75kmm.data.models.toInstant
 import com.shubham.hard75kmm.ui.models.LeaderboardState
@@ -39,23 +36,20 @@ import com.shubham.hard75kmm.ui.viewmodel.LeaderboardViewModel
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-object LeaderboardScreen : Screen {
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        val viewModel = koinScreenModel<LeaderboardViewModel>()
-        val leaderboardState by viewModel.leaderboardState.collectAsState()
+@Composable
+fun LeaderboardScreenRoot(navController: NavController) {
+    val viewModel: LeaderboardViewModel = koinViewModel()
+    val leaderboardState by viewModel.leaderboardState.collectAsState()
 
-        LeaderboardScreenContent(
-            onNavigateBack = { navigator.pop() },
-            leaderboardState = leaderboardState
-        )
-    }
+    LeaderboardScreenContent(
+        onNavigateBack = { navController.popBackStack() },
+        leaderboardState = leaderboardState
+    )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

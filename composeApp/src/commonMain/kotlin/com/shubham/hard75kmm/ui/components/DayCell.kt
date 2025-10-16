@@ -12,11 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.shubham.hard75kmm.data.db.entities.ChallengeDay
 import com.shubham.hard75kmm.data.db.entities.DayStatus
-import com.shubham.hard75kmm.db.Challenge_days
 
 @Composable
-fun DayCell(day: Challenge_days) {
+fun DayCell(day: ChallengeDay) {
     val color = when (day.status) {
         DayStatus.LOCKED -> Color.Gray
         DayStatus.FAILED -> Color.Red

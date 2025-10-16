@@ -27,13 +27,13 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.shubham.hard75kmm.data.db.entities.ChallengeDay
 import com.shubham.hard75kmm.data.models.Task
-import com.shubham.hard75kmm.db.Challenge_days
 
 @Composable
 fun TasksPopup(
     tasks: List<Task>,
-    dayData: Challenge_days?,
+    dayData: ChallengeDay?,
     onDismiss: () -> Unit,
     onFinish: (List<String>) -> Unit,
     onSelfieTaken: (ByteArray, String?) -> Unit
